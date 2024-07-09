@@ -40,7 +40,7 @@ MAX_SHOTS = 9000  # most player bullets onscreen
 ALIEN_ODDS = 22  # chances a new alien appears
 BOMB_ODDS = 60  # chances a new bomb will drop
 ALIEN_RELOAD = 12  # frames between new aliens
-SCREENRECT = pg.Rect(0, 0, 640, 480)
+SCREENRECT = pg.Rect(0, 0, 360, 640)
 SCORE = 0
 
 main_dir = os.path.split(os.path.abspath(__file__))[0]
@@ -74,7 +74,7 @@ class Player(pg.sprite.Sprite):
 
     speed = 1
     bounce = 24
-    gun_offset = -11
+    gun_offset = 0
     images: List[pg.Surface] = []
 
     def __init__(self, *groups):
@@ -94,7 +94,7 @@ class Player(pg.sprite.Sprite):
             self.image = self.images[0]
         elif direction > 0:
             self.image = self.images[1]
-        self.rect.top = self.origtop - (self.rect.left // self.bounce % 2)
+        # self.rect.top = self.origtop - (self.rect.left // self.bounce % 2)
 
     def gunpos(self):
         pos = self.facing * self.gun_offset + self.rect.centerx
@@ -114,6 +114,8 @@ class Alien(pg.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.facing = random.choice((-1, 1)) * Alien.speed
         self.frame = 0
+
+
 
     def update(self):
         self.rect.move_ip(self.facing, 0)
@@ -194,7 +196,7 @@ class Bomb(pg.sprite.Sprite):
         - remove the Bomb.
         """
         self.rect.move_ip(0, self.speed)
-        if self.rect.bottom >= 470:
+        if self.rect.bottom >= 640:
             Explosion(self, self.explosion_group)
             self.kill()
 
@@ -253,10 +255,10 @@ def main(winstyle=0):
     # create the background, tile the bgd image
     bgdtile = load_image("background.gif")
     background = pg.Surface(SCREENRECT.size)
-    for x in range(0, SCREENRECT.width, bgdtile.get_width()):
-        background.blit(bgdtile, (x, 0))
-    screen.blit(background, (0, 0))
-    pg.display.flip()
+    #for x in range(0, SCREENRECT.width, bgdtile.get_width()):
+        #background.blit(bgdtile, (x, 0))
+    #screen.blit(background, (0, 0))
+    #pg.display.flip()
 
     # load the sound effects
     boom_sound = load_sound("boom.wav")
