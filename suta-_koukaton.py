@@ -4,7 +4,7 @@
 Shows a mini game where you have to defend against aliens.
 
 What does it show you about pygame?
-
+ 
 * pg.sprite, the difference between Sprite and Group.
 * dirty rectangle optimization for processing for speed.
 * music with pg.mixer.music, including fadeout
@@ -167,7 +167,7 @@ class Shot(pg.sprite.Sprite):
 
         Every tick we move the shot upwards.
         """
-        self.rect.move_ip(0, self.speed)
+        self.rect.move_ip(0, self.speed)  
         if self.rect.top <= 0:
             self.kill()
 
@@ -381,4 +381,4 @@ def main(winstyle=0):
 # call the "main" function if running this script
 if __name__ == "__main__":
     main()
-    pg.quit()
+    pg.quit()  
