@@ -74,7 +74,7 @@ class Player(pg.sprite.Sprite):
 
     speed = 1
     bounce = 24
-    gun_offset = -11
+    gun_offset = 0
     images: List[pg.Surface] = []
 
     def __init__(self, *groups):
