@@ -73,8 +73,8 @@ class Player(pg.sprite.Sprite):
     """Representing the player as a moon buggy type car."""
 
     speed = 1
-    bounce = 24
-    gun_offset = -11
+    #bounce = 24
+    gun_offset = 0
     images: List[pg.Surface] = []
 
     def __init__(self, *groups):
@@ -94,7 +94,7 @@ class Player(pg.sprite.Sprite):
             self.image = self.images[0]
         elif direction > 0:
             self.image = self.images[1]
-        self.rect.top = self.origtop - (self.rect.left // self.bounce % 2)
+        #self.rect.top = self.origtop - (self.rect.left // self.bounce % 2)
 
     def gunpos(self):
         pos = self.facing * self.gun_offset + self.rect.centerx
@@ -165,7 +165,7 @@ class Explosion(pg.sprite.Sprite):
 class Shot(pg.sprite.Sprite):
     """a bullet the Player sprite fires."""
 
-    speed = -1
+    speed = -5
     images: List[pg.Surface] = []
 
     def __init__(self, pos, *groups):
