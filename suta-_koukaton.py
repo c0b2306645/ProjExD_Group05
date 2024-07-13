@@ -222,8 +222,72 @@ class Score(pg.sprite.Sprite):
             self.lastscore = SCORE
             msg = f"Score: {SCORE}"
             self.image = self.font.render(msg, 0, self.color)
+            
 
+class Item(pg.sprite.Sprite):
+    """
+    移動するアイテムを作成するクラス
+    """
 
+    speed = 2
+    images: List[pg.Surface] = []
+
+    def __init__(self, *groups):
+        pg.sprite.Sprite.__init__(self, *groups)
+        self.image = pg.transform.scale(self.images[0], (64, 48))
+        self.image.set_colorkey((255, 255, 255))
+        self.rect = self.image.get_rect(center=SCREENRECT.center)
+        self.rect.topleft = (-100, -100)  # 初期位置を画面外に設定
+        self.spawned = False  # アイテムが生成されたかどうかのフラグ
+
+    def update(self):
+        """
+        called every time around the game loop.
+
+        アイテムを画面内で動かす。画面の端に到達したら反転する。
+        """
+        if self.spawned:
+            self.rect.move_ip(self.speed, 0)
+            if self.rect.top > SCREENRECT.height:
+                self.kill()
+                self.spawned = False  # アイテムが消えたらフラグをリセット
+            if self.rect.right >= SCREENRECT.right or self.rect.left <= 0:
+                self.speed = -self.speed
+
+    def spawn(self):
+        """アイテムを生成するメソッド"""
+        if not self.spawned:
+            self.rect.center = SCREENRECT.center
+            self.spawned = True
+
+    def is_spawned(self):
+        """アイテムが生成されているかを返すメソッド"""
+        return self.spawned
+
+    def collide_bombs(self, bombs):
+        """爆弾との衝突を処理するメソッド"""
+        if self.spawned:
+            collided = pg.sprite.spritecollide(self, bombs, True)
+            if collided:
+                self.kill()
+                self.spawned = False  # 衝突したらフラグをリセット
+                return True
+        return False
+
+    def collide_shots(self, shots):
+        """銃との衝突を処理するメソッド"""
+        if self.spawned:
+            collided = pg.sprite.spritecollide(self, shots, True)
+            if collided:
+                self.kill()
+                self.spawned = False  # 衝突したらフラグをリセット
+                return True
+        return False
+    
+    def reset_timer(self):
+        """タイマーをリセットするメソッド"""
+        self.spawned = False
+        
 def main(winstyle=0):
     # Initialize pygame
     if pg.get_sdl_version()[0] == 2:
@@ -248,6 +312,7 @@ def main(winstyle=0):
     Alien.images = [load_image(im) for im in ("alien1.gif", "alien2.gif", "alien3.gif")]
     Bomb.images = [load_image("bomb.gif")]
     Shot.images = [load_image("shot.gif")]
+    Item.images = [load_image("item.png")]  # アイテム画像を読み込む
 
     # decorate the game window
     icon = pg.transform.scale(Alien.images[0], (32, 32))
@@ -275,6 +340,7 @@ def main(winstyle=0):
     aliens = pg.sprite.Group()
     shots = pg.sprite.Group()
     bombs = pg.sprite.Group()
+    items = pg.sprite.Group()
     all = pg.sprite.RenderUpdates()
     #lastalien = pg.sprite.GroupSingle()
     # Create Some Starting Values
@@ -287,11 +353,18 @@ def main(winstyle=0):
     
     alien = Alien(aliens, all)
     
+    item = Item(items, all)  # アイテムを初期化し追加
+    
     # Alien(
     #     aliens, all, lastalien
     # )  # note, this 'lives' because it goes into a sprite group
     if pg.font:#ここでスコア表示
         all.add(Score(all))
+        
+    item_spawn_time = random.randint(300, 600)  # 初回のアイテム出現時間をランダムに設定 (5秒から10秒)
+    item_timer = 0
+    item_spawned = False
+    
 
     # Run our main loop whilst the player is alive.
     # Run our main loop whilst the player is alive.
@@ -363,8 +436,30 @@ def main(winstyle=0):
                 boom_sound.play()
             SCORE += 1
             player.kill()
-
-        # draw the scene
+        
+        # # Check collisions between items and bombs
+        # for item in items:
+        #     if item.collide_bombs(bombs):
+        #         # Do something when item collides with bomb
+        #         pass
+        
+        #  # Check collisions between items and shots
+        # for item in items:
+        #     if item.collide_shots(shots):
+        #         # Do something when item collides with shot
+        #         pass
+        
+        
+        # アイテムの生成タイミングを管理
+        item_timer += 1
+        print(item_timer)
+        if not item_spawned and item_timer >= item_spawn_time: 
+            item.spawn()
+            item_timer = 0
+            
+        if item.collide_bombs(bombs) or item.collide_shots(shots):
+            item_timer = random.randint(300, 600)
+        
         dirty = all.draw(screen)
         pg.display.update(dirty)
 
