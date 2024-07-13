@@ -9,6 +9,7 @@ import pygame as pg
 if not pg.image.get_extended():
     raise SystemExit("Sorry, extended image module required")
 
+
 # game constants
 MAX_SHOTS = 9000  # most player bullets onscreen
 ALIEN_ODDS = 22  # chances a new alien appears
@@ -21,6 +22,7 @@ GAUGE_MAX = 10  # New constant for maximum gauge value
 
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 
+
 def load_image(file):
     """loads an image, prepares it for play"""
     file = os.path.join(main_dir, "data", file)
@@ -29,6 +31,7 @@ def load_image(file):
     except pg.error:
         raise SystemExit(f'Could not load image "{file}" {pg.get_error()}')
     return surface.convert()
+
 
 def load_sound(file):
     """because pygame can be compiled without mixer."""
@@ -42,12 +45,14 @@ def load_sound(file):
         print(f"Warning, unable to load, {file}")
     return None
 
+
 class Player(pg.sprite.Sprite):
     """
     Playerのイニシャライザ
     動作メソッド、
     銃の発射位置メソッドを生成しているクラス
     """
+
     speed = 5
     bounce = 24
     gun_offset = 0
@@ -75,6 +80,7 @@ class Player(pg.sprite.Sprite):
         pos = self.facing * self.gun_offset + self.rect.centerx
         return pos, self.rect.top
 
+
 class Alien(pg.sprite.Sprite):
     """
     エイリアンのイニシャライザ
@@ -82,6 +88,7 @@ class Alien(pg.sprite.Sprite):
     銃の発射位置メソッド
     エイリアンの位置更新メソッドを生成しているクラス
     """
+    
     speed = 5
     gun_offset = 0
     images: List[pg.Surface] = []
@@ -93,12 +100,10 @@ class Alien(pg.sprite.Sprite):
         self.rect = self.image.get_rect(midtop=SCREENRECT.midtop)
         self.facing = -1
         self.origbottom = self.rect.bottom
-
-        # Initialize gauge
+        # New gauge instance for the alien
         self.gauge = Gauge()
-        self.gauge.rect.topleft = (10, 10)  # Position the gauge in the top-left corner
-        groups[0].add(self.gauge)  # Add gauge to the same group as other sprites
-    
+        self.gauge.rect.topleft = (SCREENRECT.width // 2 - 50, 10)  # Position the gauge
+
     def move(self, direction):
         if direction:
             self.facing = direction
@@ -114,16 +119,22 @@ class Alien(pg.sprite.Sprite):
         return pos, self.rect.bottom
 
     def update(self):
-        # Update gauge value or other logic here
-        self.gauge.update()  # Ensure gauge is updated each frame
         if not SCREENRECT.contains(self.rect):
             self.facing = -self.facing
             self.rect = self.rect.clamp(SCREENRECT)
+        # Update the alien's gauge
+        self.gauge.update()
+        # Example of how to use the gauge value
+        if self.gauge.value > GAUGE_MAX // 2:
+            # Perform some action if gauge is above a certain level
+            pass
+
 
 class Explosion(pg.sprite.Sprite):
     """
     オブジェクトが衝突した際に爆発する演出を作成するクラス
     """
+
     defaultlife = 12
     animcycle = 3
     images: List[pg.Surface] = []
@@ -137,8 +148,10 @@ class Explosion(pg.sprite.Sprite):
     def update(self):
         """
         called every time around the game loop.
+
         Show the explosion surface for 'defaultlife'.
         Every game tick(update), we decrease the 'life'.
+
         Also we animate the explosion.
         """
         self.life = self.life - 1
@@ -146,10 +159,12 @@ class Explosion(pg.sprite.Sprite):
         if self.life <= 0:
             self.kill()
 
+
 class Shot(pg.sprite.Sprite):
     """
     Playerが使う銃を生成するクラス
     """
+
     speed = -10
     images: List[pg.Surface] = []
 
@@ -161,16 +176,19 @@ class Shot(pg.sprite.Sprite):
     def update(self):
         """
         called every time around the game loop.
+
         Every tick we move the shot upwards.
         """
         self.rect.move_ip(0, self.speed)  
         if self.rect.top <= 0:
             self.kill()
 
+
 class Bomb(pg.sprite.Sprite):
     """
     Alienが落とす爆弾を生成するクラス
     """
+
     speed = 10
     images: List[pg.Surface] = []
 
@@ -188,10 +206,12 @@ class Bomb(pg.sprite.Sprite):
         if self.rect.bottom >= SCREENRECT.bottom:
             self.kill()
 
+
 class Score(pg.sprite.Sprite):
     """
     状況に応じて増減し、MAX_GUNSとMAX_BOMBSに関与するスコアクラス
     """
+
     def __init__(self, *groups):
         pg.sprite.Sprite.__init__(self, *groups)
         self.font = pg.font.Font(None, 20)
@@ -208,11 +228,13 @@ class Score(pg.sprite.Sprite):
             msg = f"Score: {SCORE}"
             self.image = self.font.render(msg, 0, self.color)
 
+
 # New Gauge class to manage the gauge functionality
 class Gauge(pg.sprite.Sprite):
     """
     ゲージを管理するクラス
     """
+
     def __init__(self, *groups):
         pg.sprite.Sprite.__init__(self, *groups)
         self.font = pg.font.Font(None, 20)
@@ -221,7 +243,7 @@ class Gauge(pg.sprite.Sprite):
         self.value = 0
         self.lastvalue = -1
         self.update()
-        self.rect = self.image.get_rect().move(10, 420)
+        self.rect = self.image.get_rect().move(10, 420)  # Default position for Player
 
     def update(self):
         """We only update the gauge in update() when it has changed."""
@@ -234,28 +256,21 @@ class Gauge(pg.sprite.Sprite):
         self.value = min(self.value + amount, GAUGE_MAX)
 
     def decrease(self, amount):
-        if self.value >= amount:
-            self.value -= amount
-            return True
-        return False
+        if self.value - amount < 0:
+            return False
+        self.value -= amount
+        return True
 
-def main(winstyle=0):
-    # Initialize pygame
-    if pg.get_sdl_version()[0] == 2:
-        pg.mixer.pre_init(44100, 32, 2, 1024)
+
+def main():
     pg.init()
-    if pg.mixer and not pg.mixer.get_init():
-        print("Warning, no sound")
-        pg.mixer = None
-
-    fullscreen = False
-    # Set the display mode
-    winstyle = 0  # |FULLSCREEN
+    pg.mixer.init()
+    pg.display.set_mode(SCREENRECT.size)
+    winstyle = pg.NOFRAME
     bestdepth = pg.display.mode_ok(SCREENRECT.size, winstyle, 32)
     screen = pg.display.set_mode(SCREENRECT.size, winstyle, bestdepth)
 
     # Load images, assign to sprite classes
-    # (do this before the classes are used, after screen setup)
     img = load_image("3.png")
     Player.images = [img, pg.transform.flip(img, 1, 0)]
     img = load_image("explosion1.gif")
@@ -270,7 +285,7 @@ def main(winstyle=0):
     pg.display.set_caption("Pygame Aliens")
     pg.mouse.set_visible(0)
 
-    # create the background, tile the bgd image ここで背景変更
+    # create the background, tile the bgd image
     bgdtile = load_image("utyuu.jpg")
     background = pg.Surface(SCREENRECT.size)
     background.blit(bgdtile, (0, 0))
@@ -296,10 +311,11 @@ def main(winstyle=0):
     # initialize our starting sprites
     global SCORE
     player = Player(all)
-    alien = Alien(aliens, all)  # Alien now has a gauge
+    alien = Alien(aliens, all)
     gauge = Gauge(all)  # New instance of the Gauge class
+    all.add(alien.gauge)  # Add alien gauge to the all group
     
-    if pg.font:  # ここでスコア表示
+    if pg.font:  # Score display
         all.add(Score(all))
     
     # Run our main loop whilst the player is alive.
@@ -307,7 +323,7 @@ def main(winstyle=0):
 
     while player.alive() and alien.alive():
         # get input
-        for event in pg.event.get():  # もし双方のうち片方が死んだら数秒勝利画面を作る
+        for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
             if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
@@ -378,7 +394,7 @@ def main(winstyle=0):
         dirty = all.draw(screen)
         pg.display.update(dirty)
 
-        # cap the framerate at 40fps. Also called 40HZ or 40 times per second.
+        # cap the framerate at 40fps
         clock.tick(40)
 
         # Increase gauge value every 2 seconds
@@ -387,11 +403,12 @@ def main(winstyle=0):
             gauge.increase(1)
             last_time = current_time
 
-    if pg.mixer:                                                
+    if pg.mixer:
         pg.mixer.music.fadeout(1000)
     pg.time.wait(1000)
 
+
 # call the "main" function if running this script
 if __name__ == "__main__":
-    main()
-    pg.quit()
+    main()  
+    pg.quit()  
