@@ -54,7 +54,6 @@ class Player(pg.sprite.Sprite):
     """
 
     speed = 5
-    bounce = 24
     gun_offset = 0
     images: List[pg.Surface] = []
 
@@ -121,8 +120,6 @@ class Alien(pg.sprite.Sprite):
         if not SCREENRECT.contains(self.rect):
             self.facing = -self.facing
             self.rect = self.rect.clamp(SCREENRECT)
-        # self.frame = self.frame + 1
-        # self.image = self.images[self.frame // self.animcycle % 3]
 
 
 class Explosion(pg.sprite.Sprite):
@@ -276,9 +273,6 @@ def main(winstyle=0):
     shots = pg.sprite.Group()
     bombs = pg.sprite.Group()
     all = pg.sprite.RenderUpdates()
-    #lastalien = pg.sprite.GroupSingle()
-    # Create Some Starting Values
-    #alienreload = ALIEN_RELOAD
     clock = pg.time.Clock()
 
     # initialize our starting sprites
@@ -287,14 +281,9 @@ def main(winstyle=0):
     
     alien = Alien(aliens, all)
     
-    # Alien(
-    #     aliens, all, lastalien
-    # )  # note, this 'lives' because it goes into a sprite group
     if pg.font:#ここでスコア表示
         all.add(Score(all))
 
-    # Run our main loop whilst the player is alive.
-    # Run our main loop whilst the player is alive.
     while player.alive() and alien.alive():
         # get input
         for event in pg.event.get():  # もし双方のうち片方が死んだら数秒勝利画面を作る
@@ -371,10 +360,6 @@ def main(winstyle=0):
         # cap the framerate at 40fps. Also called 40HZ or 40 times per second.
         clock.tick(40)
         
-        
-    
-    
-
     if pg.mixer:
         pg.mixer.music.fadeout(1000)
     pg.time.wait(1000)
