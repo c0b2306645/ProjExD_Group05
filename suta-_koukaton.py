@@ -348,7 +348,6 @@ def main(winstyle=0):
                 boom_sound.play()
             SCORE += 1
             player.kill()
-
         # draw the scene
         dirty = all.draw(screen)
         pg.display.update(dirty)
@@ -356,6 +355,10 @@ def main(winstyle=0):
         # cap the framerate at 40fps. Also called 40HZ or 40 times per second.
         clock.tick(40)
         
+        
+    
+    
+
     if pg.mixer:
         pg.mixer.music.fadeout(1000)
     pg.time.wait(1000)
