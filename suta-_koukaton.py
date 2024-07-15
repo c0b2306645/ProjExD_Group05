@@ -12,13 +12,10 @@ if not pg.image.get_extended():
 
 
 # game constants
-MAX_SHOTS = 9000  # most player bullets onscreen
-ALIEN_ODDS = 22  # chances a new alien appears
-BOMB_ODDS = 60  # chances a new bomb will drop
-ALIEN_RELOAD = 12  # frames between new aliens
+MAX_SHOTS = 1  # most player bullets onscreen
+MAX_BOMBS = 1
 SCREENRECT = pg.Rect(0, 0, 640, 480)
 SCORE = 0
-
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 
 
@@ -53,7 +50,6 @@ class Player(pg.sprite.Sprite):
     """
 
     speed = 5
-    bounce = 24
     gun_offset = 0
     images: List[pg.Surface] = []
 
@@ -120,8 +116,6 @@ class Alien(pg.sprite.Sprite):
         if not SCREENRECT.contains(self.rect):
             self.facing = -self.facing
             self.rect = self.rect.clamp(SCREENRECT)
-        # self.frame = self.frame + 1
-        # self.image = self.images[self.frame // self.animcycle % 3]
 
 
 class Explosion(pg.sprite.Sprite):
@@ -223,6 +217,39 @@ class Score(pg.sprite.Sprite):
             self.image = self.font.render(msg, 0, self.color)
 
 
+class Win(pg.sprite.Sprite):
+    """
+    ・プレイヤーがエイリアンに爆弾を当てた際に画像と文字を呼び出す。
+    ・エイリアンがプレイヤーに爆弾を当てた際に画像と文字を呼び出す。
+    """
+    def __init__(self, winner, *groups):
+        pg.sprite.Sprite.__init__(self, *groups)
+        self.image = pg.Surface(SCREENRECT.size)
+        self.image.fill("black")
+        
+        if winner == "Player":
+            win_image = load_image("player_win.png")
+        else:
+            win_image = load_image("alien_win.png")
+        
+        # Resize the image to be smaller
+        win_image = pg.transform.scale(win_image, (SCREENRECT.width // 2, SCREENRECT.height // 4))
+        
+        # Blit the win image onto the black background
+        win_image_rect = win_image.get_rect(center=(SCREENRECT.centerx, SCREENRECT.centery - 50))
+        self.image.blit(win_image, win_image_rect)
+        
+        # Render the win text
+        self.font = pg.font.Font(None, 50)
+        self.color = "white"
+        win_text = f"{winner} Wins!"
+        text_surface = self.font.render(win_text, True, self.color)
+        text_rect = text_surface.get_rect(center=(SCREENRECT.centerx, SCREENRECT.centery + 100))
+        self.image.blit(text_surface, text_rect)
+        
+        self.rect = self.image.get_rect()
+
+
 def main(winstyle=0):
     # Initialize pygame
     if pg.get_sdl_version()[0] == 2:
@@ -279,20 +306,16 @@ def main(winstyle=0):
     # Create Some Starting Values
     #alienreload = ALIEN_RELOAD
     clock = pg.time.Clock()
-
     # initialize our starting sprites
     global SCORE
     player = Player(all)
-    
     alien = Alien(aliens, all)
-    
     # Alien(
     #     aliens, all, lastalien
     # )  # note, this 'lives' because it goes into a sprite group
     if pg.font:#ここでスコア表示
         all.add(Score(all))
 
-    # Run our main loop whilst the player is alive.
     # Run our main loop whilst the player is alive.
     while player.alive() and alien.alive():
         # get input
@@ -353,6 +376,12 @@ def main(winstyle=0):
             if pg.mixer and boom_sound is not None:
                 boom_sound.play()
             Explosion(alien, all)
+            # Display win screen for player
+            all.add(Win("Player"))
+            all.draw(screen)
+            pg.display.flip()
+            pg.time.wait(5000)
+            return
 
         # See if alien bombs hit the player.
         for bomb in pg.sprite.spritecollide(player, bombs, 1):
@@ -362,6 +391,12 @@ def main(winstyle=0):
                 boom_sound.play()
             SCORE += 1
             player.kill()
+            # Display win screen for alien
+            all.add(Win("Alien"))
+            all.draw(screen)
+            pg.display.flip()
+            pg.time.wait(5000)
+            return
 
         # draw the scene
         dirty = all.draw(screen)
@@ -369,15 +404,10 @@ def main(winstyle=0):
 
         # cap the framerate at 40fps. Also called 40HZ or 40 times per second.
         clock.tick(40)
-        
-        
-    
-    
 
     if pg.mixer:
         pg.mixer.music.fadeout(1000)
     pg.time.wait(1000)
-
 
 # call the "main" function if running this script
 if __name__ == "__main__":
