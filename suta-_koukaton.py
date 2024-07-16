@@ -41,6 +41,57 @@ def load_sound(file):
         print(f"Warning, unable to load, {file}")
     return None
 
+class Gauge(pg.sprite.Sprite):
+    """
+    ゲージを管理して表示するクラス
+    """
+
+    def __init__(self, position, *groups):
+        super().__init__(*groups)
+        self.image = pg.Surface((30, 100))
+        self.image.fill((0, 0, 0))
+        self.rect = self.image.get_rect()
+        self.rect.topleft = position
+        self.capacity = 10  # ゲージの最大容量
+        self.current_value = 0  # 現在のゲージの量
+        self.fill_color = (0, 255, 0)  # ゲージの満タン時の色
+        self.empty_color = (255, 0, 0)  # ゲージの空の時の色
+        self.last_update = pg.time.get_ticks()  # 前回ゲージが更新された時間
+        self.font = pg.font.Font(None, 20)  # 数字表示用のフォント
+
+    def update(self):
+        """
+        ゲージの値に応じて描画を更新する
+        """
+        # 現在のゲージの量に応じて、ゲージの長さを計算する
+        gauge_length = int(self.current_value / self.capacity * self.rect.height)
+        fill_rect = pg.Rect(0, self.rect.height - gauge_length, self.rect.width, gauge_length)
+        # ゲージを描画する
+        self.image.fill(self.empty_color)
+        pg.draw.rect(self.image, self.fill_color, fill_rect)
+        # 数字でゲージの量を表示する
+        text = self.font.render(str(self.current_value), True, (255, 255, 255))
+        text_rect = text.get_rect(center=self.rect.center)
+        self.image.blit(text, text_rect)
+
+    def increase(self):
+        """
+        2秒ごとにゲージを2増やす
+        """
+        now = pg.time.get_ticks()
+        if now - self.last_update > 2000:  # 2秒経過したら
+            self.last_update = now
+            self.current_value += 1
+            if self.current_value > self.capacity:
+                self.current_value = self.capacity
+
+    def can_fire(self):
+        """
+        ゲージが2以上なら発射可能
+        """
+        return self.current_value >= 2
+
+
 
 class Player(pg.sprite.Sprite):
     """
@@ -60,6 +111,7 @@ class Player(pg.sprite.Sprite):
         self.reloading = 0
         self.origtop = self.rect.top
         self.facing = -1
+        self.gauge = Gauge((10, SCREENRECT.height - 100), *groups)  # プレイヤーのゲージ
 
     def move(self, direction):
         if direction:
@@ -96,6 +148,7 @@ class Alien(pg.sprite.Sprite):
         self.rect = self.image.get_rect(midtop=SCREENRECT.midtop)
         self.facing = -1
         self.origbottom = self.rect.bottom
+        self.gauge = Gauge((10, 10), *groups)  # エイリアンのゲージ
         
     def move(self, direction):
         if direction:
@@ -303,19 +356,20 @@ def main(winstyle=0):
     bombs = pg.sprite.Group()
     all = pg.sprite.RenderUpdates()
     clock = pg.time.Clock()
+
     # initialize our starting sprites
     global SCORE
     player = Player(all)
-    alien = Alien(aliens, all)
     
-    # Alien(
-    #     aliens, all, lastalien
-    # )  # note, this 'lives' because it goes into a sprite group
+    alien = Alien(aliens, all)
+
+    all.add(player.gauge)  # プレイヤーのゲージを追加
+    all.add(alien.gauge)  # エイリアンのゲージを追加
+
+    
     if pg.font:#ここでスコア表示
         all.add(Score(all))
 
-    # Run our main loop whilst the player is alive.
-    # Run our main loop whilst the player is alive.
     while player.alive() and alien.alive():
         # get input
         for event in pg.event.get():  # もし双方のうち片方が死んだら数秒勝利画面を作る
@@ -353,21 +407,31 @@ def main(winstyle=0):
         # handle player input
         direction = keystate[pg.K_RIGHT] - keystate[pg.K_LEFT]
         player.move(direction)
+
+        player.gauge.update()
+        player.gauge.increase()
+
         firing = keystate[pg.K_SPACE]
-        if not player.reloading and firing and len(shots) < MAX_SHOTS:
+        if not player.reloading and firing and len(shots) < MAX_SHOTS and player.gauge.can_fire():
             Shot(player.gunpos(), shots, all)
             if pg.mixer and shoot_sound is not None:
                 shoot_sound.play()
+            player.gauge.current_value -= 2
         player.reloading = firing
 
         # Alien Shot and Drop bombs
         direction = keystate[pg.K_d] - keystate[pg.K_a]
         alien.move(direction)
+
+        alien.gauge.update()
+        alien.gauge.increase()
+
         firing = keystate[pg.K_t]
-        if not alien.reloading and firing and len(bombs) < MAX_BOMBS:
+        if not alien.reloading and firing and len(bombs) < MAX_BOMBS and alien.gauge.can_fire():
             Bomb(alien.gunpos(), bombs, all)
             if pg.mixer and shoot_sound is not None:
                 shoot_sound.play()
+            alien.gauge.current_value -= 2
         alien.reloading = firing
 
         # Detect collisions between aliens and players.
@@ -391,18 +455,30 @@ def main(winstyle=0):
             SCORE += 1
             player.kill()
 
+            # Display win screen for alien
+            all.add(Win("Alien"))
+            all.draw(screen)
+            pg.display.flip()
+            pg.time.wait(5000)
+            return
+        
+        all.add(player.gauge)  # プレイヤーのゲージを毎フレーム追加する
+        all.add(alien.gauge)  # エイリアンのゲージを毎フレーム追加する
+
+
         # draw the scene
         dirty = all.draw(screen)
         pg.display.update(dirty)
 
         # cap the framerate at 40fps. Also called 40HZ or 40 times per second.
         clock.tick(40)
-
+        
     if pg.mixer:
         pg.mixer.music.fadeout(1000)
     pg.time.wait(1000)
 
+
 # call the "main" function if running this script
 if __name__ == "__main__":
     main()
-    pg.quit()
+    pg.quit()  
