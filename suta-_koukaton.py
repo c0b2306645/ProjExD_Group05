@@ -274,7 +274,6 @@ class Item(pg.sprite.Sprite):
         if not self.spawned:
             self.rect.center = SCREENRECT.center  # アイテムを中央に移動
             self.spawned = True  # フラグを設定
-            print(f"Item spawned at: {self.rect.center}")  # デバッグメッセージ
 
     def is_spawned(self) -> bool:
         """
@@ -295,7 +294,6 @@ class Item(pg.sprite.Sprite):
                 self.kill()  # 衝突したらアイテムを消す
                 self.spawned = False  # フラグをリセット
                 self.rect.topleft = (-100, -100)  # 初期位置にリセット
-                print("Item collided with bomb")  # デバッグメッセージ
                 return True
         return False
 
@@ -311,7 +309,6 @@ class Item(pg.sprite.Sprite):
                 self.kill()
                 self.spawned = False  # 衝突したらフラグをリセット
                 self.rect.topleft = (-100, -100)  # 画面外の初期位置にリセット
-                print("Item collided with shot")  # デバッグメッセージ
                 return True
         return False
 
@@ -448,7 +445,6 @@ def main(winstyle=0):
         if not item_spawned and item_timer >= item_spawn_time:
             item.spawn()  # アイテムを生成
             item_spawned = True
-            print("Item spawned")  # デバッグメッセージ
 
         # アイテムが爆弾と衝突したかを確認
         if item.collide_bombs(bombs) or item.collide_shots(shots):
