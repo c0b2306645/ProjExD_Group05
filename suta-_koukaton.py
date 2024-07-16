@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import random
+import math
 from typing import List
 
 # import basic pygame modules
@@ -127,6 +128,14 @@ class Player(pg.sprite.Sprite):
     def gunpos(self):
         pos = self.facing * self.gun_offset + self.rect.centerx
         return pos, self.rect.top
+    
+    # def update(self):
+    #     # 当たり判定のチェック
+    #     if pg.sprite.spritecollideany(self, bombs) or pg.sprite.spritecollideany(self, WavyShot) or pg.sprite.spritecollideany(self, spread_shots):
+    #         self.kill()
+    #         Explosion(self, all)
+    #         boom_sound.play()
+
 
 
 class Alien(pg.sprite.Sprite):
@@ -169,6 +178,13 @@ class Alien(pg.sprite.Sprite):
         if not SCREENRECT.contains(self.rect):
             self.facing = -self.facing
             self.rect = self.rect.clamp(SCREENRECT)
+
+        # if pg.sprite.spritecollideany(self, shots) or pg.sprite.spritecollideany(self, WavyShot) or pg.sprite.spritecollideany(self, spread_shots):
+        #     self.kill()
+        #     Explosion(self, all)
+        #     boom_sound.play()
+        #     global SCORE
+        #     SCORE += 1
 
 
 class Explosion(pg.sprite.Sprite):
@@ -247,6 +263,60 @@ class Bomb(pg.sprite.Sprite):
         if self.rect.bottom >= SCREENRECT.bottom:
             self.kill()
 
+class WavyShot(pg.sprite.Sprite):
+    Player_speed = -10
+    Alien_speed = 10
+    amplitude = 100
+    frequency = 2
+    images: List[pg.Surface] = []
+
+    def __init__(self, pos, is_player, *groups):
+        pg.sprite.Sprite.__init__(self, *groups)
+        self.image = self.images[0]
+        self.rect = self.image.get_rect(midbottom=pos) if is_player else self.image.get_rect(midtop=pos)
+        self.speed = self.Player_speed if is_player else self.Alien_speed
+        self.time = 10
+
+    # def update(self):
+    #     self.time += 1
+    #     self.rect.move_ip(self.amplitude * math.sin(self.frequency * self.time), self.speed)
+    #     if self.rect.top <= 0 or self.rect.bottom >= SCREENRECT.bottom:
+    #         self.kill()
+
+
+class SpreadShot(pg.sprite.Sprite):
+    Player_speed = -10
+    Alien_speed = 10
+    spread_angle = 90
+    player_images: List[pg.Surface] = []
+    alien_images: List[pg.Surface] = []
+
+    def __init__(self, pos, angle,is_player, *groups):
+        pg.sprite.Sprite.__init__(self, *groups)
+        self.is_player = is_player
+        self.image = self.player_images[0] if is_player else self.alien_images[0]
+        self.rect = self.image.get_rect(midbottom=pos) if is_player else self.image.get_rect(midtop=pos)
+        self.speed = self.Player_speed if is_player else self.Alien_speed
+        self.angle = angle
+
+    def update(self):
+        dx = self.speed * math.sin(math.radians(self.angle))
+        dy = self.speed * math.cos(math.radians(self.angle))
+        self.rect.move_ip(dx, dy)
+
+        if self.rect.top <= 0 or self.rect.left <= 0 or self.rect.right >= SCREENRECT.right  or self.rect.bottom >= SCREENRECT.bottom:
+            self.kill()
+
+        if not self.is_player and pg.sprite.spritecollideany(self, players):
+            player = pg.sprite.spritecollideany(self, players)
+            Explosion(self, all)
+            Explosion(player, all)
+            player.kill()
+            self.kill()
+            
+            
+
+
 
 class Score(pg.sprite.Sprite):
     """
@@ -257,7 +327,7 @@ class Score(pg.sprite.Sprite):
         pg.sprite.Sprite.__init__(self, *groups)
         self.font = pg.font.Font(None, 20)
         self.font.set_italic(1)
-        self.color = "white"
+        self.color ="white"
         self.lastscore = -1
         self.update()
         self.rect = self.image.get_rect().move(10, 450)
@@ -305,6 +375,9 @@ class Win(pg.sprite.Sprite):
 
 def main(winstyle=0):
     # Initialize pygame
+
+    global shots, bombs, WavyShot, spread_shots, all, boom_sound, shoot_sound, background, players
+
     if pg.get_sdl_version()[0] == 2:
         pg.mixer.pre_init(44100, 32, 2, 1024)
     pg.init()
@@ -327,7 +400,9 @@ def main(winstyle=0):
     Alien.images = [load_image(im) for im in ("alien1.gif", "alien2.gif", "alien3.gif")]
     Bomb.images = [load_image("bomb.gif")]
     Shot.images = [load_image("shot.gif")]
-
+    WavyShot.images = [load_image("shot.gif")] #追加
+    SpreadShot.player_images = [load_image("shot.gif")]
+    SpreadShot.alien_images = [load_image("bomb.gif")] #追加
     # decorate the game window
     icon = pg.transform.scale(Alien.images[0], (32, 32))
     pg.display.set_icon(icon)
@@ -360,13 +435,14 @@ def main(winstyle=0):
     # initialize our starting sprites
     global SCORE
     player = Player(all)
-    
+    players.add(player)
     alien = Alien(aliens, all)
 
     all.add(player.gauge)  # プレイヤーのゲージを追加
     all.add(alien.gauge)  # エイリアンのゲージを追加
 
     
+    aliens.add(alien)
     if pg.font:#ここでスコア表示
         all.add(Score(all))
 
@@ -433,6 +509,35 @@ def main(winstyle=0):
                 shoot_sound.play()
             alien.gauge.current_value -= 2
         alien.reloading = firing
+
+
+        if keystate[pg.K_k]:
+            SpreadShot(player.gunpos(), -15, True, shots, all)  # Player用のSpreadShot
+            SpreadShot(player.gunpos(), 0, True, shots, all)
+            SpreadShot(player.gunpos(), 15, True, shots, all)
+            if pg.mixer and shoot_sound is not None:
+                shoot_sound.play()
+
+        if keystate[pg.K_l]:
+            SpreadShot(player.gunpos(), -15, True, shots, all) #変更 player用spreadShot
+            SpreadShot(player.gunpos(), 0, True, shots, all)
+            SpreadShot(player.gunpos(), 15, True, shots, all)
+
+            if pg.mixer and shoot_sound is not None:
+                shoot_sound.play()
+
+        
+        if keystate[pg.K_5]:
+            WavyShot(alien.gunpos(), bombs, all)
+            if pg.mixer and shoot_sound is not None:
+                shoot_sound.play()
+
+        if keystate[pg.K_6]:
+            SpreadShot(alien.gunpos(), -15, bombs, all)
+            SpreadShot(alien.gunpos(), 0, bombs, all)
+            SpreadShot(alien.gunpos(), 15, bombs, all)
+            if pg.mixer and shoot_sound is not None:
+                shoot_sound.play()
 
         # Detect collisions between aliens and players.
         for alien in pg.sprite.groupcollide(aliens, shots, 1, 1).keys():
