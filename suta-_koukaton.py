@@ -232,14 +232,14 @@ class Win(pg.sprite.Sprite):
         else:
             win_image = load_image("alien_win.png")
         
-        # Resize the image to be smaller
+        # この画像を小さくリサイズする
         win_image = pg.transform.scale(win_image, (SCREENRECT.width // 2, SCREENRECT.height // 4))
         
-        # Blit the win image onto the black background
+        # 勝利画像を黒い背景にブリットする
         win_image_rect = win_image.get_rect(center=(SCREENRECT.centerx, SCREENRECT.centery - 50))
         self.image.blit(win_image, win_image_rect)
         
-        # Render the win text
+        # 勝利テキストを描画する
         self.font = pg.font.Font(None, 50)
         self.color = "white"
         win_text = f"{winner} Wins!"
