@@ -290,6 +290,7 @@ class Item(pg.sprite.Sprite):
         """
         if self.spawned:
             collided = pg.sprite.spritecollide(self, bombs, True)  # 衝突を確認
+        
             if collided:
                 self.kill()  # 衝突したらアイテムを消す
                 self.spawned = False  # フラグをリセット
@@ -377,7 +378,7 @@ def main(winstyle=0):
     if pg.font:
         all.add(Score(all))
 
-    item_spawn_time = random.randint(300, 600)  # 初回のアイテム出現時間をランダムに設定 (5秒から10秒)
+    item_spawn_time = random.randint(300, 600)  # 初回のアイテム出現時間をランダムに設定 (5秒から10秒）
     item_timer = 0
     item_spawned = False
 
@@ -448,9 +449,9 @@ def main(winstyle=0):
 
         # アイテムが爆弾と衝突したかを確認
         if item.collide_bombs(bombs) or item.collide_shots(shots):
-            print("Item collided")  # デバッグメッセージ
             item_timer = 0
             item_spawn_time = random.randint(300, 600)  # 新しいアイテム出現時間を設定
+            item = Item(items, all)  # アイテムを初期化し再度作成
             item_spawned = False
         
         pg.display.update(all.draw(screen))
