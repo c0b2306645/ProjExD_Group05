@@ -448,7 +448,13 @@ def main(winstyle=0):
             item_spawned = True
 
         # アイテムが爆弾と衝突したかを確認
-        if item.collide_bombs(bombs) or item.collide_shots(shots):
+        if item.collide_bombs(bombs):
+            item_timer = 0
+            item_spawn_time = random.randint(300, 600)  # 新しいアイテム出現時間を設定
+            item = Item(items, all)  # アイテムを初期化し再度作成
+            item_spawned = False
+        
+        if item.collide_shots(shots):
             item_timer = 0
             item_spawn_time = random.randint(300, 600)  # 新しいアイテム出現時間を設定
             item = Item(items, all)  # アイテムを初期化し再度作成
