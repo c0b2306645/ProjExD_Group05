@@ -307,8 +307,8 @@ class SpreadShot(pg.sprite.Sprite):
         if self.rect.top <= 0 or self.rect.left <= 0 or self.rect.right >= SCREENRECT.right  or self.rect.bottom >= SCREENRECT.bottom:
             self.kill()
 
-        if not self.is_player and pg.sprite.spritecollide(self, players, ):
-            player = pg.sprite.spritecollideany(self, players)
+        if not self.is_player and pg.sprite.spritecollide(self, players, 1):
+            player = pg.sprite.spritecollide(self, players, 1)
             Explosion(self, all)
             Explosion(player, all)
             player.kill()
@@ -379,7 +379,9 @@ class Item(pg.sprite.Sprite):
             self.rect.move_ip(self.speed, 0)  # アイテムを移動
             if self.rect.top > SCREENRECT.height:
                 self.kill()  # 画面外に出たらアイテムを消す
+                print("killed update")
                 self.spawned = False  # フラグをリセット
+                
             if self.rect.right >= SCREENRECT.right or self.rect.left <= 0:
                 self.speed = -self.speed  # 画面端に当たったら移動方向を反転
 
@@ -409,6 +411,7 @@ class Item(pg.sprite.Sprite):
         
             if collided:
                 self.kill()  # 衝突したらアイテムを消す
+                print("killed bomb")
                 self.spawned = False  # フラグをリセット
                 self.rect.topleft = (-100, -100)  # 初期位置にリセット
                 return True
@@ -424,6 +427,7 @@ class Item(pg.sprite.Sprite):
             collided = pg.sprite.spritecollide(self, shots, True)
             if collided:
                 self.kill()
+                print("killed shot")
                 self.spawned = False  # 衝突したらフラグをリセット
                 self.rect.topleft = (-100, -100)  # 画面外の初期位置にリセット
                 return True
@@ -519,6 +523,7 @@ def main(winstyle=0):
         pg.mixer.music.play(-1)
 
     player = pg.sprite.Group()
+    # players = pg.sprite.Group()
     aliens = pg.sprite.Group()
     shots = pg.sprite.Group()
     bombs = pg.sprite.Group()
@@ -527,7 +532,7 @@ def main(winstyle=0):
 
     global SCORE
     player = Player(all)
-    #players.add(player)
+    # players.add(player)
     alien = Alien(aliens, all)
     
     all.add(player.gauge)  # プレイヤーのゲージを追加
@@ -537,19 +542,21 @@ def main(winstyle=0):
     if pg.font:#ここでスコア表示
         all.add(Score(all))
 
-    alien = Alien(aliens, all)
+    # alien = Alien(aliens, all)
     item = Item(items, all)  # アイテムを初期化し追加
 
     if pg.font:
         all.add(Score(all))
 
-    item_spawn_time = random.randint(300, 600)  # 初回のアイテム出現時間をランダムに設定 (5秒から10秒）
+    item_spawn_time = 50#random.randint(300, 600)  # 初回のアイテム出現時間をランダムに設定 (5秒から10秒）
     item_timer = 0
     item_spawned = False
 
     clock = pg.time.Clock()
 
     while player.alive() and alien.alive():
+        background.blit(bgdtile, (0, 0))
+        screen.blit(background, (0, 0))
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 return
@@ -611,7 +618,7 @@ def main(winstyle=0):
             if pg.mixer and shoot_sound is not None:
                 shoot_sound.play()
 
-        if keystate[pg.K_l]:#第一回を参考に圧されている間じゃなくて押されたときに変更する必要がある
+        if keystate[pg.K_l]:#第一回を参考におされている間じゃなくて押されたときに変更する必要がある
             SpreadShot(player.gunpos(), -15, True, shots, all) #変更 player用spreadShot
             SpreadShot(player.gunpos(), 0, True, shots, all)
             SpreadShot(player.gunpos(), 15, True, shots, all)
@@ -667,24 +674,31 @@ def main(winstyle=0):
         pg.display.update(dirty)
         item_timer += 1# アイテム生成タイマーを更新
         if not item_spawned and item_timer >= item_spawn_time:
+            print("spawn")
+            
             item.spawn()  # アイテムを生成
             item_spawned = True
 
         # アイテムが爆弾と衝突したかを確認
         if item.collide_bombs(bombs):
+            print("collide")
+            background.blit(bgdtile, (0, 0))
+            screen.blit(background, (0, 0))
             item_timer = 0
-            item_spawn_time = random.randint(300, 600)  # 新しいアイテム出現時間を設定
+            item_spawn_time = 50 #random.randint(300, 600)  # 新しいアイテム出現時間を設定
             item = Item(items, all)  # アイテムを初期化し再度作成
             item_spawned = False
         
         if item.collide_shots(shots):
+            print("collide")
+            background.blit(bgdtile, (0, 0))
+            screen.blit(background, (0, 0))
             item_timer = 0
-            item_spawn_time = random.randint(300, 600)  # 新しいアイテム出現時間を設定
+            item_spawn_time = 50#random.randint(300, 600)  # 新しいアイテム出現時間を設定
             item = Item(items, all)  # アイテムを初期化し再度作成
             item_spawned = False
         
-        pg.display.update(all.draw(screen))
-
+        pg.display.update(all.draw(screen))        
         clock.tick(40)
     if pg.mixer:
         pg.mixer.music.fadeout(1000)
