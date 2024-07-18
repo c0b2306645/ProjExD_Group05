@@ -124,6 +124,7 @@ class Alien(pg.sprite.Sprite):
         self.frame = 0
         if self.facing < 0:
             self.rect.right = SCREENRECT.right
+            print(self.rect.right)
 
     def update(self):
         self.rect.move_ip(self.facing, 0)
